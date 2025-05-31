@@ -25,8 +25,7 @@ typedef uint8_t Sector[NUM_PIXELS]; // Definição de um setor, possuindo 25 pos
 typedef struct{
     int sector; // Setor atual
     Position position; // Posição atual
-    int current_capacity; // Capacidade do robô
-    int missing_deliverables; // Entregas faltantes
+    int charge; // Nível de carga do robô
 }Robot;
 
 // Estrutura para armazenar a fábrica
@@ -69,6 +68,7 @@ void get_global_coordinates(Robot coordinate, int *globalX, int *globalY); // Fu
 int manhattan_distance(Robot a, Robot b); // Função para calcular a distância de Manhattan
 void randomize_objectives(Robot objectives[], Factory *factory); // Função para randomizar os objetivos
 void show_destination(Factory *factory); // Função para mostrar o destino
+void show_charging_station(Factory *factory); // Função para mostrar a estação de carregamento
 void calculate_distances(int distances[], Robot objectives[], Factory *factory); // Função para calcular as distâncias
 void insertion_sort(int arr[], int n, bool aux[], Robot objectives[]); // Função para ordenar as distâncias
 void solve_capacitated_vrp(Factory *factory, Robot objectives[], int distances[], bool delivered[], uint8_t *sector, ssd1306_t *ssd); // Função para resolver o problema do VRP

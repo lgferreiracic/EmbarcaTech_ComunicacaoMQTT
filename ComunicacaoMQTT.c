@@ -53,7 +53,7 @@ Factory factory = {
         2, 2, 0, 2, 2
     },
     .sectors[1] = {
-        2, 2, 2, 2, 2,
+        2, 2, 5, 2, 2,
         2, 0, 0, 0, 2,
         0, 0, 0, 0, 0,
         2, 0, 0, 0, 2,
@@ -114,8 +114,7 @@ Factory factory = {
             .y = 1
         },
         .sector = 0,
-        .current_capacity = 0,
-        .missing_deliverables = 5
+        .charge = 100 // Nível de carga inicial do robô
     }
 };
 
@@ -161,8 +160,6 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
         destination.sector = a - 1;
         destination.position.x = b / 5;
         destination.position.y = b % 5;
-        destination.current_capacity = factory.robot.current_capacity;
-        destination.missing_deliverables = factory.robot.missing_deliverables;
         option_selected = 3;
         user_request(html, sizeof(html));
     }else if(strncmp(request, "GET /manual?dir=up", 18) == 0){ // Verifica se é a requisição é a de movimentação manual para cima
@@ -204,11 +201,21 @@ void setup(){
 
 }
 
+bool check_battery(struct repeating_timer *t) {
+    if (factory.robot.charge > 5) {
+        factory.robot.charge-=5; // Consome 1 unidade de carga a cada 10 segundos
+        printf("Nivel de carga do robo: %d%%\n", factory.robot.charge); // Exibe o nível de carga do robô
+    } 
+    return true; // Retorna verdadeiro para continuar o timer
+}
+
 int main(){
+    struct repeating_timer timer;
     setup(); // Inicializa o hardware e configurações
     randomize_objectives(objectives, &factory); // Posiciona os objetivos aleatoriamente
     reset_delivered(delivered); // Reinicializa o vetor que responsável por armazenar os objetivos entregues
     manual_mode_display(&ssd); // Exibe a tela de movimentação manual
+    add_repeating_timer_ms(10000, check_battery, NULL, &timer);
     while (verify_mqtt(&state)) {
         cyw43_arch_poll(); // Necessário para manter o Wi-Fi ativo
         cyw43_arch_wait_for_work_until(make_timeout_time_ms(10000)); // Espera por trabalho até 10 segundos
@@ -229,6 +236,12 @@ int main(){
                 clear_display(&ssd); // Limpa o display
                 clear_matrix(); // Limpa a matriz de LEDs RGB
                 find_path(destination, &factory, &sector, delivered, objectives, &ssd); // Encontra o caminho e movimenta o robô
+
+                if(factory.robot.charge > 10)
+                    factory.robot.charge -= 10; // Consome 10% da carga do robô
+                else
+                    factory.robot.charge = 5; // Carga mínima para ainda ser possível caminhar até a estação de carregamento
+                    
                 manual_mode_display(&ssd); // Exibe a tela de movimentação manual
                 option_selected = 1; // Retorna para o modo manual
                 break;
@@ -236,6 +249,19 @@ int main(){
                 break;
         }
         sleep_ms(200);
+        if(factory.robot.charge <= 10){ 
+            destination.position.x = 0;
+            destination.position.y = 2;
+            destination.sector = 1; 
+            clear_display(&ssd); // Limpa o display
+            clear_matrix(); // Limpa a matriz de LEDs RGB
+            find_path(destination, &factory, &sector, delivered, objectives, &ssd); // Encontra o caminho e movimenta o robô
+            factory.robot.charge = 100; // Recarrega a bateria do robô
+            play_charging_sound(); // Toca o som de sucesso
+            printf("Bateria recarregada!\n"); // Exibe mensagem de recarga
+            manual_mode_display(&ssd); // Exibe a tela de movimentação manual
+            option_selected = 1; // Retorna para o modo manual
+        }
     }
     cyw43_arch_deinit(); // Desativa o CYW43
     return 0;

@@ -17,6 +17,7 @@ void play_buzzer(uint pin, uint frequency, uint duration_ms); // Toca o buzzer
 void play_denied_sound(); // Toca o som de negação
 void play_success_sound(); // Toca o som de sucesso
 void play_delivery_sound(); // Toca o som de entrega de objetivo
+void play_charging_sound(); // Toca o som de carregamento
 
 // Frequências das notas musicais (em Hz)
 enum NotasMusicais {

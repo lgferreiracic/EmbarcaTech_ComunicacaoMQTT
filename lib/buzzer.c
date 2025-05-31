@@ -78,3 +78,14 @@ void play_delivery_sound() {
     play_buzzer(BUZZER_A_PIN, SOL, 200);
     black();
 }
+
+// Função para tocar um som de carregamento
+void play_charging_sound() {
+    play_buzzer(BUZZER_A_PIN, LA, 100);
+    sleep_ms(50);
+    play_buzzer(BUZZER_A_PIN, SI, 100);
+    sleep_ms(50);
+    play_buzzer(BUZZER_A_PIN, DO, 100);
+    sleep_ms(50);
+    play_buzzer(BUZZER_A_PIN, RE, 100);
+}

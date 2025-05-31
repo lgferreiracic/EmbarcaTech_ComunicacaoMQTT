@@ -34,9 +34,11 @@ void draw_factory(Factory *factory, uint8_t *sector){
             } else if(factory->sectors[*sector][i] == 2){
                 pixels[i] = BLUE;
             } else if(factory->sectors[*sector][i] == 3){
-                pixels[i] = GREEN;
+                pixels[i] = YELLOW;
             } else if(factory->sectors[*sector][i] == 4){
                 pixels[i] = MAGENTA;
+            } else if(factory->sectors[*sector][i] == 5){
+                pixels[i] = GREEN;
             }
         }
         desenho_pio(pixels, pio0, 0);
@@ -66,8 +68,14 @@ void move_up(Factory *factory, uint8_t *sector, bool delivered[], Robot objectiv
         if(verify_objective(objectives, factory, sector, delivered)){
             play_success_sound();
             atual_capacity++;
+        } else if(factory->robot.position.x == 0 && factory->robot.position.y == 2 && *sector == 1 && factory->robot.charge <= 100){
+            play_charging_sound();
+            show_charging_station(factory);
+            factory->robot.charge = 100; // Recarrega a bateria do robô
+            printf("Bateria recarregada!\n");
         }
     }
+    show_destination(factory);
 }
 
 // Função mover o robô para baixo
@@ -89,6 +97,7 @@ void move_down(Factory *factory, uint8_t *sector, bool delivered[], Robot object
             atual_capacity = 0;
         }
     }
+    show_charging_station(factory);
 }
 
 // Função mover o robô para a esquerda
@@ -404,6 +413,7 @@ void manual_mode_movimentation(Factory *factory, uint8_t *sector, uint16_t joyst
     draw_factory(factory, sector);
     //navigation_status(ssd, *sector, atual_capacity, get_missing_deliverables(factory));
     show_destination(factory);
+    show_charging_station(factory);
     show_delivarables(factory, *sector, delivered, objectives);
     switch (factory->robot.sector){
         case 0:
@@ -448,10 +458,9 @@ void automatic_mode_movimentation(Robot* path, int path_length, Factory *factory
         *sector = factory->robot.sector;
         show_delivarables(factory, *sector, delivered, objectives);
         show_destination(factory);
+        show_charging_station(factory);
         draw_factory(factory, sector);
         navigation_status(ssd, *sector, atual_capacity, get_missing_deliverables(factory));
-        factory->robot.current_capacity = atual_capacity;
-        factory->robot.missing_deliverables = get_missing_deliverables(factory);
         if(i < path_length - 1){
             sleep_ms(500);
         }
@@ -645,6 +654,11 @@ void show_destination(Factory *factory) {
             factory->sectors[7][22]=4;
 }
 
+void show_charging_station(Factory *factory) {
+    if(factory->sectors[1][2]!=1)
+        factory->sectors[1][2]=5; // Marca a estação de carregamento
+}
+
 // Função para calcular as distâncias
 void calculate_distances(int distances[], Robot objectives[], Factory *factory) {
     for (int i = 0; i < NUM_LOADS; i++) {
@@ -722,6 +736,10 @@ void solve_capacitated_vrp(Factory *factory, Robot objectives[], int distances[]
         }
     }
     atual_capacity = 0;
+    if(factory->robot.charge > 30)
+        factory->robot.charge -= 30;
+    else
+        factory->robot.charge = 5; // Carga mínima para ainda ser possivel caminhar até a estação de carregamento
 }
 
 // Função para resetar os objetivos entregues
