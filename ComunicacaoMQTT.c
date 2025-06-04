@@ -195,7 +195,11 @@ void setup(){
     configure_mqtt_client(&state, client_id_buf); // Configura o cliente MQTT
     resolve_and_connect_mqtt(&state); // Resolve o endereço do servidor MQTT e conecta
     state.factory = &factory; // Atribui a fábrica ao estado do cliente MQTT
-
+    state.ssd = &ssd; // Atribui o display SSD1306 ao estado do cliente MQTT
+    state.objectives = objectives; // Atribui os objetivos ao estado do cliente MQTT
+    state.delivered = delivered; // Atribui o vetor de entregas ao estado do cliente MQTT
+    state.distances = distances; // Atribui as distâncias ao estado do cliente MQTT
+    state.sector = &sector; // Atribui o setor ao estado do cliente MQTT
     // Configuração dos pinos de interrupção
     gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &irq_handler); // Configura interrupção para o botão A
     gpio_set_irq_enabled_with_callback(BUTTON_B_PIN, GPIO_IRQ_EDGE_FALL, true, &irq_handler); // Configura interrupção para o botão B

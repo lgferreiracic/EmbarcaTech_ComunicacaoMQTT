@@ -65,8 +65,11 @@ void sub_unsub_topics(MQTT_CLIENT_DATA_T* state, bool sub) {
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/print"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/ping"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/exit"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
-    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/factory/robot/charge"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
-    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/temperature"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/up"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/down"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/left"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/right"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/cvrp"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
 }
 
 // Dados de entrada MQTT
@@ -97,6 +100,21 @@ void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     } else if (strcmp(basic_topic, "/exit") == 0) {
         state->stop_client = true; // stop the client when ALL subscriptions are stopped
         sub_unsub_topics(state, false); // unsubscribe
+    } else if(strcmp(basic_topic, "/up") == 0) {
+        INFO_printf("Up command received\n");
+        manual_mode_movimentation(state->factory, state->sector, 2048, 3500, state->ssd, state->delivered, state->objectives);
+    } else if(strcmp(basic_topic, "/down") == 0) {
+        INFO_printf("Down command received\n");
+        manual_mode_movimentation(state->factory, state->sector, 2048, 500, state->ssd, state->delivered, state->objectives);
+    } else if(strcmp(basic_topic, "/left") == 0) {
+        INFO_printf("Left command received\n");
+        manual_mode_movimentation(state->factory, state->sector, 500, 2048, state->ssd, state->delivered, state->objectives);
+    } else if(strcmp(basic_topic, "/right") == 0) {
+        INFO_printf("Right command received\n");
+        manual_mode_movimentation(state->factory, state->sector, 3500, 2048, state->ssd, state->delivered, state->objectives);
+    } else if(strcmp(basic_topic, "/cvrp") == 0) {
+        INFO_printf("CVRP command received\n");
+        solve_capacitated_vrp(state->factory, state->objectives, state->distances, state->delivered, state->sector, state->ssd);
     }
 }
 
@@ -190,6 +208,28 @@ void charge_worker_fn(async_context_t *context, async_at_time_worker_t *worker) 
 }
 async_at_time_worker_t charge_worker = { .do_work = charge_worker_fn };
 
+//Publicar setor que está localizado
+void publish_sector(MQTT_CLIENT_DATA_T *state){
+    static uint8_t old_sector = 255; // Set to an invalid sector initially
+    uint8_t sector = *state->sector; // Assuming sector is stored in the state structure
+    if (sector != old_sector) {
+        old_sector = sector;
+        char sector_str[4];
+        snprintf(sector_str, sizeof(sector_str), "%d", sector);
+        const char *sector_topic = full_topic(state, "/factory/robot/sector");
+        INFO_printf("Publishing sector: %s to %s\n", sector_str, sector_topic);
+        mqtt_publish(state->mqtt_client_inst, sector_topic, sector_str, strlen(sector_str), MQTT_PUBLISH_QOS, MQTT_PUBLISH_RETAIN, pub_request_cb, state);
+    }
+}
+
+void sector_worker_fn(async_context_t *context, async_at_time_worker_t *worker) {
+    MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)worker->user_data;
+    publish_sector(state);
+    async_context_add_at_time_worker_in_ms(context, worker, SECTOR_WORKER_TIME_S * 1000);
+}
+
+async_at_time_worker_t sector_worker = { .do_work = sector_worker_fn };
+
 // Conexão MQTT
 void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status) {
     MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)arg;
@@ -206,8 +246,13 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status
         temperature_worker.user_data = state;
         async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
 
+        // Publish battery charge every 10 sec if it's changed
         charge_worker.user_data = state;
         async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &charge_worker, 0);
+
+        // Publish sector every 10 sec if it's changed
+        sector_worker.user_data = state;
+        async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &sector_worker, 0);
 
     } else if (status == MQTT_CONNECT_DISCONNECTED) {
         if (!state->connect_done) {

@@ -43,6 +43,11 @@ typedef struct {
     int subscribe_count;
     bool stop_client;
     Factory *factory; // Estrutura que armazena a fábrica e o robô
+    ssd1306_t *ssd; // Display OLED SSD1306
+    bool *delivered; // Vetor que armazena se os objetivos foram entregues
+    Robot *objectives; // Vetor que armazena os objetivos do robô
+    int *distances; // Vetor que armazena as distâncias entre o robô e os objetivos
+    uint8_t *sector; // Setor atual do robô
 } MQTT_CLIENT_DATA_T;
 
 #ifndef DEBUG_printf
@@ -66,6 +71,9 @@ typedef struct {
 
 // Temporização da coleta de carga da bateria - how often to measure our battery charge
 #define CHARGE_WORKER_TIME_S 10
+
+// Temporização da coleta do setor - how often to measure our sector
+#define SECTOR_WORKER_TIME_S 10
 
 // Manter o programa ativo - keep alive in seconds
 #define MQTT_KEEP_ALIVE_S 60
