@@ -1,6 +1,5 @@
 #include "./lib/mqtt_client.h"
 
-
 /* References for this implementation:
  * raspberry-pi-pico-c-sdk.pdf, Section '4.1.1. hardware_adc'
  * pico-examples/adc/adc_console/adc_console.c */
@@ -66,6 +65,8 @@ void sub_unsub_topics(MQTT_CLIENT_DATA_T* state, bool sub) {
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/print"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/ping"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
     mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/exit"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/factory/robot/charge"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
+    mqtt_sub_unsub(state->mqtt_client_inst, full_topic(state, "/temperature"), MQTT_SUBSCRIBE_QOS, cb, state, sub);
 }
 
 // Dados de entrada MQTT
@@ -169,6 +170,26 @@ void temperature_worker_fn(async_context_t *context, async_at_time_worker_t *wor
 
 async_at_time_worker_t temperature_worker = { .do_work = temperature_worker_fn };
 
+void publish_battery_charge(MQTT_CLIENT_DATA_T *state) {
+    static int old_charge = -1;
+    int charge = state->factory->robot.charge; // Assuming charge is stored in the robot structure
+    if (charge != old_charge) {
+        old_charge = charge;
+        char charge_str[8];
+        snprintf(charge_str, sizeof(charge_str), "%d%%", charge);
+        const char *charge_topic = full_topic(state, "/factory/robot/charge");
+        INFO_printf("Publishing battery charge: %s to %s\n", charge_str, charge_topic);
+        mqtt_publish(state->mqtt_client_inst, charge_topic, charge_str, strlen(charge_str), MQTT_PUBLISH_QOS, MQTT_PUBLISH_RETAIN, pub_request_cb, state);
+    }
+}
+
+void charge_worker_fn(async_context_t *context, async_at_time_worker_t *worker) {
+    MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)worker->user_data;
+    publish_battery_charge(state);
+    async_context_add_at_time_worker_in_ms(context, worker, CHARGE_WORKER_TIME_S * 1000);
+}
+async_at_time_worker_t charge_worker = { .do_work = charge_worker_fn };
+
 // Conexão MQTT
 void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status) {
     MQTT_CLIENT_DATA_T* state = (MQTT_CLIENT_DATA_T*)arg;
@@ -184,6 +205,10 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status
         // Publish temperature every 10 sec if it's changed
         temperature_worker.user_data = state;
         async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &temperature_worker, 0);
+
+        charge_worker.user_data = state;
+        async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(), &charge_worker, 0);
+
     } else if (status == MQTT_CONNECT_DISCONNECTED) {
         if (!state->connect_done) {
             panic("Failed to connect to mqtt server");

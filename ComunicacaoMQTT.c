@@ -194,6 +194,7 @@ void setup(){
     generate_client_id(client_id_buf, sizeof(client_id_buf)); // Gera o ID do cliente MQTT
     configure_mqtt_client(&state, client_id_buf); // Configura o cliente MQTT
     resolve_and_connect_mqtt(&state); // Resolve o endereço do servidor MQTT e conecta
+    state.factory = &factory; // Atribui a fábrica ao estado do cliente MQTT
 
     // Configuração dos pinos de interrupção
     gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &irq_handler); // Configura interrupção para o botão A
@@ -203,7 +204,7 @@ void setup(){
 
 bool check_battery(struct repeating_timer *t) {
     if (factory.robot.charge > 5) {
-        factory.robot.charge-=5; // Consome 1 unidade de carga a cada 10 segundos
+        factory.robot.charge-=5; // Consome 5 unidades de carga a cada 10 segundos
         printf("Nivel de carga do robo: %d%%\n", factory.robot.charge); // Exibe o nível de carga do robô
     } 
     return true; // Retorna verdadeiro para continuar o timer

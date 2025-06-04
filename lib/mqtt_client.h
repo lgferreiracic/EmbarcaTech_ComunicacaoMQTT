@@ -10,6 +10,8 @@
 #include "lwip/dns.h"               // Biblioteca que fornece funções e recursos suporte DNS:
 #include "lwip/altcp_tls.h"         // Biblioteca que fornece funções e recursos para conexões seguras usando TLS:
 
+#include "./lib/factory.h"           // Biblioteca que define a estrutura da fábrica e do robô
+
 #define WIFI_SSID "A35 de Lucas"                  // Substitua pelo nome da sua rede Wi-Fi
 #define WIFI_PASSWORD "lucaslucas"      // Substitua pela senha da sua rede Wi-Fi
 #define MQTT_SERVER "192.168.162.78"                // Substitua pelo endereço do host - broket MQTT: Ex: 192.168.1.107
@@ -40,6 +42,7 @@ typedef struct {
     bool connect_done;
     int subscribe_count;
     bool stop_client;
+    Factory *factory; // Estrutura que armazena a fábrica e o robô
 } MQTT_CLIENT_DATA_T;
 
 #ifndef DEBUG_printf
@@ -60,6 +63,9 @@ typedef struct {
 
 // Temporização da coleta de temperatura - how often to measure our temperature
 #define TEMP_WORKER_TIME_S 10
+
+// Temporização da coleta de carga da bateria - how often to measure our battery charge
+#define CHARGE_WORKER_TIME_S 10
 
 // Manter o programa ativo - keep alive in seconds
 #define MQTT_KEEP_ALIVE_S 60
