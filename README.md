@@ -1,4 +1,4 @@
-# EmbarcaTech_ComunicaçãoIOT
+# EmbarcaTech_ComunicaçãoMQTT
 <p align="center">
   <img src="Group 658.png" alt="EmbarcaTech" width="300">
 </p>
@@ -91,4 +91,4 @@ Display OLED exibe:
 
 ## Vídeo da Solução
 
-[Link do YouTube](https://www.youtube.com/watch?v=ov_15hz8gqE)
+[Link do YouTube](https://www.youtube.com/watch?v=O2jbdGXdGoE)
