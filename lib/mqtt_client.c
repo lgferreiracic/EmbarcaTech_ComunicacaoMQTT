@@ -275,6 +275,7 @@ void generate_client_id(char *client_id_buf, size_t buf_size) {
     INFO_printf("Device name %s\n", client_id_buf);
 }
 
+// Configure the MQTT client with the necessary parameters
 void configure_mqtt_client(MQTT_CLIENT_DATA_T *state, const char *client_id_buf) {
     state->mqtt_client_info.client_id = client_id_buf;
     state->mqtt_client_info.keep_alive = MQTT_KEEP_ALIVE_S;
@@ -315,6 +316,7 @@ void configure_mqtt_client(MQTT_CLIENT_DATA_T *state, const char *client_id_buf)
 #endif
 }
 
+// Resolve o nome do servidor MQTT e conecta
 void resolve_and_connect_mqtt(MQTT_CLIENT_DATA_T *state) {
     cyw43_arch_lwip_begin();
     int err = dns_gethostbyname(MQTT_SERVER, &state->mqtt_server_address, dns_found, state);
@@ -327,6 +329,7 @@ void resolve_and_connect_mqtt(MQTT_CLIENT_DATA_T *state) {
     }
 }
 
+// Verifica se o cliente MQTT está conectado
 bool verify_mqtt(MQTT_CLIENT_DATA_T *state) {
     if (!state->connect_done || mqtt_client_is_connected(state->mqtt_client_inst)) {
         cyw43_arch_poll();

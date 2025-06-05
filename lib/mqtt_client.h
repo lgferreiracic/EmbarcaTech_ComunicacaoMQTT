@@ -12,11 +12,11 @@
 
 #include "./lib/factory.h"           // Biblioteca que define a estrutura da fábrica e do robô
 
-#define WIFI_SSID "A35 de Lucas"                  // Substitua pelo nome da sua rede Wi-Fi
-#define WIFI_PASSWORD "lucaslucas"      // Substitua pela senha da sua rede Wi-Fi
-#define MQTT_SERVER "192.168.162.78"                // Substitua pelo endereço do host - broket MQTT: Ex: 192.168.1.107
-#define MQTT_USERNAME "lucas"     // Substitua pelo nome da host MQTT - Username
-#define MQTT_PASSWORD "lucas"     // Substitua pelo Password da host MQTT - credencial de acesso - caso exista
+#define WIFI_SSID "Residencia"                  // Substitua pelo nome da sua rede Wi-Fi
+#define WIFI_PASSWORD "embarcatech"      // Substitua pela senha da sua rede Wi-Fi
+#define MQTT_SERVER "192.168.1.107"                // Substitua pelo endereço do host - broket MQTT: Ex: 192.168.1.107
+#define MQTT_USERNAME "embarcatech"     // Substitua pelo nome da host MQTT - Username
+#define MQTT_PASSWORD "embarcatech"     // Substitua pelo Password da host MQTT - credencial de acesso - caso exista
 
 #ifndef MQTT_SERVER
 #error Need to define MQTT_SERVER
